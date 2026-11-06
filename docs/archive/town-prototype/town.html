@@ -1,0 +1,422 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>头像小镇 · 无人直播交互原型</title>
+<style>
+  :root{
+    --bg:#0e1014; --panel:#171a21; --panel-2:#1e222b; --line:#2a2f3a;
+    --text:#f2ece0; --muted:#9aa3b2; --accent:#ffb457; --accent-2:#ff8fab; --ok:#5ad19b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#1b2230,#0e1014 60%);color:var(--text);
+       font:14px/1.5 "Microsoft YaHei","PingFang SC",system-ui,sans-serif;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{font-size:17px;font-weight:700;letter-spacing:.4px}
+  .brand small{font-weight:400;color:var(--muted);margin-left:8px;font-size:12px}
+  .badges{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);
+         border-radius:999px;font-size:12px;color:var(--muted);background:var(--panel)}
+  .badge b{color:var(--text);font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:#6b7280}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  button{font:inherit;color:var(--text);background:var(--panel-2);border:1px solid var(--line);
+         border-radius:9px;padding:7px 12px;cursor:pointer;transition:.15s}
+  button:hover{border-color:#3d4557;transform:translateY(-1px)}
+  button.primary{background:linear-gradient(180deg,#ffc470,#ff9f3d);color:#231a08;border-color:#ffb457;font-weight:700}
+  button.on{border-color:var(--accent);color:var(--accent)}
+  main{flex:1;display:flex;gap:14px;padding:14px 18px;min-height:0}
+  .stage-wrap{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .stage{position:relative;flex:1;min-height:0;min-width:0;background:#0b0d11;border:1px solid var(--line);border-radius:14px;
+         overflow:hidden;display:flex;align-items:center;justify-content:center;padding:6px}
+  .stage.portrait canvas{height:100%;width:auto;max-width:100%;aspect-ratio:9/16;border-radius:10px;box-shadow:0 0 0 1px #2a2f3a,0 20px 60px rgba(0,0,0,.5)}
+  canvas{display:block;border-radius:10px;cursor:crosshair}
+  .dock{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .dock input{flex:1;min-width:220px;padding:9px 12px;border-radius:9px;border:1px solid var(--line);
+              background:var(--panel);color:var(--text);font:inherit;outline:none}
+  .dock input:focus{border-color:var(--accent)}
+  .hint{color:var(--muted);font-size:12px}
+  aside{width:340px;flex:none;display:flex;flex-direction:column;gap:10px;min-height:0}
+  aside h2{margin:0;font-size:12px;letter-spacing:1px;color:var(--muted);font-weight:600;text-transform:uppercase}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto}
+  .events{flex:1.2;min-height:120px;display:flex;flex-direction:column;gap:6px}
+  .ev{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.45}
+  .ev .tag{flex:none;font-size:10.5px;padding:1px 6px;border-radius:5px;background:#252b36;color:var(--muted);margin-top:1px}
+  .ev.cmd .tag{background:#3d2f14;color:var(--accent)}
+  .ev.gift .tag{background:#3b2230;color:var(--accent-2)}
+  .ev.join .tag{background:#1d3330;color:var(--ok)}
+  .ev .who{color:var(--muted)}
+  .ev .txt{color:var(--text);word-break:break-word}
+  .log{flex:1;min-height:110px;display:flex;flex-direction:column-reverse;gap:4px;font-size:12.5px}
+  .log div{color:var(--muted)}
+  .log .k-city,.log .k-headline,.log .k-day{color:var(--accent)}
+  .log .k-rank{color:#c9a7ff}
+  .log .k-gift{color:var(--accent-2)}
+  .rank{display:flex;flex-direction:column;gap:6px;font-size:13px}
+  .rank .row{display:flex;align-items:center;gap:8px}
+  .rank .no{width:18px;color:var(--muted);font-size:12px}
+  .rank .bar{flex:1;height:6px;border-radius:3px;background:#252b36;overflow:hidden}
+  .rank .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-2),var(--accent))}
+  .rank .coins{color:var(--accent);font-variant-numeric:tabular-nums}
+  .help{font-size:12.5px;color:var(--muted);line-height:1.7}
+  .help b{color:var(--text)}
+  .help code{background:#222833;padding:1px 5px;border-radius:4px;color:#ffd9a0}
+  @media (max-width:1100px){ main{flex-direction:column} aside{width:auto;flex-direction:row;flex-wrap:wrap} .card{flex:1;min-width:240px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">🏘️ 头像小镇 <small>无人直播交互原型 · 观众的分身在这里生活</small></div>
+  <div class="badges">
+    <span class="badge"><span class="dot" id="bridgeDot"></span><b id="bridgeState">数据桥：未连接</b></span>
+    <span class="badge" id="modeBadge">演示模式</span>
+    <button id="btnOrientation">切换到竖屏 9:16</button>
+    <button id="btnVoice">语音播报：关</button>
+    <button id="btnReset">重置小镇</button>
+  </div>
+</header>
+
+<main>
+  <section class="stage-wrap">
+    <div class="stage" id="stage"><canvas id="town"></canvas></div>
+    <div class="dock">
+      <input id="say" maxlength="60" placeholder="以「我」的身份发弹幕：去钓鱼 / 上班 / 跳舞 / 睡觉 / 打一架 …">
+      <button class="primary" id="btnSay">发弹幕</button>
+      <button data-gift="小心心">💗 小心心</button>
+      <button data-gift="啤酒">🍺 啤酒</button>
+      <button data-gift="玫瑰">🌹 玫瑰</button>
+      <button data-gift="火箭">🚀 火箭</button>
+      <button id="btnLike">❤️ 点赞 ×10</button>
+      <button id="btnJoin">＋ 新观众进场</button>
+    </div>
+    <div class="hint">演示模式用「首字色块」当头像；接入 douyin-bridge 后，观众的真实头像会直接贴到小人脸上（沿用原项目的三层头像保障）。</div>
+  </section>
+
+  <aside>
+    <h2>直播事件</h2>
+    <div class="card events" id="events"></div>
+    <h2>小镇播报</h2>
+    <div class="card log" id="log"></div>
+    <h2>互动榜（点赞/评论/礼物都算分）</h2>
+    <div class="card rank" id="rank"></div>
+    <h2>怎么玩</h2>
+    <div class="card help">
+      <b>弹幕</b> = 给分身下指令，1 秒内生效（每人 4 秒一条，防刷）。<br>
+      <b>点赞</b> = 全城公共充能条，充满就放烟花、全体心情 +20。<br>
+      <b>礼物</b> = 大动作：🍺去酒馆、🍬吃糖、🌹心动、🚀上头条。<br>
+      <b>空场不造假</b>：没人时不放「假观众/假出怪」（平台明令禁止机器人），只显示等待提示。演示模式里的模拟事件仅用于本地录屏。<br>
+      <b>沉淀</b>：每天结算日报，段位从「路过的」升到「镇长」；榜单算「互动积分」（点赞/评论/礼物加权），不只看礼物。资产按平台规则 3 个月一个赛季。
+    </div>
+  </aside>
+</main>
+
+<script type="module">
+import { Town, AUTO_NAMES, parseCommand } from './engine.mjs';
+import { TownView, project } from './view.mjs';
+import { DemoFeed, connectBridge, DEMO_NAMES } from './feed.mjs';
+
+const SAVE_KEY = 'town.v1';
+const $ = (id) => document.getElementById(id);
+const canvas = $('town');
+const stage = $('stage');
+const view = new TownView(canvas);
+
+const town = new Town({ seed: (Date.now() % 100000), daySeconds: 600, autoFill: false, startHour: 8 });
+const demo = new DemoFeed(town, {
+  rate: 1.5,
+  // 演示事件也进「直播事件」面板，长得和真实数据桥一样
+  onEvent(ev) {
+    pushEvent({
+      type: ev.type,
+      name: ev.name,
+      text: ev.type === 'comment' ? ev.text
+        : ev.type === 'gift' ? `送出 ${ev.raw}`
+        : ev.type === 'like' ? `点赞 +${ev.count}`
+        : '入住了小镇',
+      cmd: ev.type === 'comment' ? (parseCommand(ev.text)?.intent ?? null) : null
+    });
+  }
+});
+let portrait = false;
+let voiceOn = false;
+let bridgeState = { state: 'offline' };
+let feedLines = [];
+let known = new Set();
+
+// ---------- 本地存档：关播/刷新后分身还在 ----------
+function save() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ save: town.save(), savedAt: Date.now() }));
+  } catch { /* 隐私模式忽略 */ }
+}
+function restore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (!raw?.save) return 0;
+    // 平台规则：单个观众的身价/资产最长只保留 3 个月（101 天），到期开新赛季重来。
+    const SEASON_MS = 101 * 24 * 3600 * 1000;
+    if (raw.savedAt && Date.now() - Number(raw.savedAt) > SEASON_MS) {
+      try { localStorage.removeItem(SAVE_KEY); } catch { /* 忽略 */ }
+      return 0;
+    }
+    const offline = Math.max(0, (Date.now() - Number(raw.savedAt || Date.now())) / 1000);
+    const n = town.load(raw.save, offline);
+    if (n) for (const r of town.residents.values()) known.add(r.name);
+    return n;
+  } catch { return 0; }
+}
+
+// ---------- 语音播报（浏览器 Web Speech，和原项目同一条路子）----------
+function speak(text) {
+  if (!voiceOn || !globalThis.speechSynthesis) return;
+  const clean = String(text).replace(/[<>]/g, '').slice(0, 60);
+  const u = new SpeechSynthesisUtterance(clean);
+  const voices = speechSynthesis.getVoices();
+  u.voice = voices.find((v) => /zh|cmn/i.test(v.lang) && /xiaoxiao|xiaoyi|huihui|female|女/i.test(v.name))
+    || voices.find((v) => /zh-CN/i.test(v.lang)) || null;
+  u.lang = 'zh-CN'; u.rate = 1.1; u.pitch = 1.05; u.volume = .9;
+  speechSynthesis.speak(u);
+}
+
+// ---------- 事件流 ----------
+function pushEvent(ev) {
+  feedLines.unshift(ev);
+  feedLines = feedLines.slice(0, 60);
+  renderEvents();
+}
+
+function renderEvents() {
+  const box = $('events');
+  box.innerHTML = '';
+  for (const ev of feedLines.slice(0, 24)) {
+    const row = document.createElement('div');
+    row.className = 'ev ' + (ev.type === 'comment' ? (ev.cmd ? 'cmd' : '') : ev.type);
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = ev.type === 'comment' ? (ev.cmd ? `指令·${ev.cmd}` : '弹幕')
+      : ev.type === 'gift' ? '礼物' : ev.type === 'like' ? '点赞' : '进场';
+    const body = document.createElement('span');
+    body.className = 'txt';
+    const who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = ev.name + '：';
+    body.append(who, document.createTextNode(ev.text || ''));
+    row.append(tag, body);
+    box.append(row);
+  }
+}
+
+function renderRank(snap) {
+  const box = $('rank');
+  box.innerHTML = '';
+  const max = Math.max(1, ...snap.ranking.map((r) => r.score ?? r.coins));
+  snap.ranking.forEach((r, i) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<span class="no">${i + 1}</span><span class="bar"><i style="width:${((r.score ?? r.coins) / max) * 100}%"></i></span>
+      <span>${r.name}${r.auto ? '<small style="color:#6b7280"> 自动</small>' : ''}</span>
+      <span class="coins">${r.score ?? r.coins}</span>`;
+    box.append(row);
+  });
+}
+
+function renderLog(snap) {
+  const box = $('log');
+  box.innerHTML = '';
+  for (const line of snap.log.slice(-30)) {
+    const div = document.createElement('div');
+    div.className = 'k-' + line.kind;
+    div.textContent = line.text;
+    box.append(div);
+  }
+}
+
+// ---------- 主循环 ----------
+let last = performance.now();
+let snap = town.snapshot();
+let lastPanelUpdate = 0;
+
+function loop(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  demo.tick(dt);
+  town.tick(dt);
+  view.spawnEffects(town.takeEffects());
+  snap = town.snapshot();
+  view.frame(dt, snap);
+
+  if (now - lastPanelUpdate > 400) {
+    lastPanelUpdate = now;
+    renderLog(snap);
+    renderRank(snap);
+    tickVoice(snap);
+    refreshModeBadge();
+  }
+  requestAnimationFrame(loop);
+}
+
+// 播报：只念“大事”，避免吵
+let lastSpokenAt = -1;
+const spokenKinds = new Set(['day', 'headline', 'rank', 'city']);
+function tickVoice(snapNow) {
+  const fresh = snapNow.log.filter((l) => spokenKinds.has(l.kind) && l.at > lastSpokenAt);
+  if (!fresh.length) return;
+  lastSpokenAt = Math.max(lastSpokenAt, ...fresh.map((l) => l.at));
+  if (voiceOn) speak(fresh[fresh.length - 1].text.replace(/[📰🌟🎖️🎆⚔️]/g, ''));
+}
+
+// ---------- 尺寸 ----------
+function resize() {
+  const rect = stage.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (portrait) {
+    // 显示尺寸由 CSS（9:16 aspect-ratio）决定，这里只按真实像素设画布后备缓冲
+    const box = canvas.getBoundingClientRect();
+    view.resize(Math.max(180, box.width), Math.max(320, box.height), dpr, false);
+  } else {
+    view.resize(Math.max(320, rect.width - 12), Math.max(240, rect.height - 12), dpr, true);
+  }
+}
+new ResizeObserver(resize).observe(stage);
+window.addEventListener('resize', resize);
+
+// ---------- 交互 ----------
+const ME = '我';   // 交互演示时，“我”就是当前观众
+
+function sendComment(text) {
+  const value = String(text || '').trim();
+  if (!value) return;
+  const res = town.feed({ type: 'comment', name: ME, text: value });
+  const cmd = res?.parsed?.intent || null;
+  pushEvent({ type: 'comment', name: ME, text: value, cmd });
+  view.focus(ME, 5);
+  $('say').value = '';
+}
+$('btnSay').addEventListener('click', () => sendComment($('say').value));
+$('say').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendComment($('say').value); });
+
+document.querySelectorAll('[data-gift]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const raw = btn.dataset.gift;
+    town.feed({ type: 'gift', name: ME, raw, gift: 'other', count: 1 });
+    pushEvent({ type: 'gift', name: ME, text: `送出 ${raw}` });
+    view.focus(ME, 5);
+  });
+});
+
+$('btnLike').addEventListener('click', () => {
+  town.feed({ type: 'like', name: ME, count: 10 });
+  pushEvent({ type: 'like', name: ME, text: '点赞 ×10 → 全城充能 +10' });
+});
+$('btnJoin').addEventListener('click', () => {
+  const pool = DEMO_NAMES.concat(AUTO_NAMES);
+  const name = pool[Math.floor(Math.random() * pool.length)];
+  town.feed({ type: 'join', name });
+  pushEvent({ type: 'join', name, text: '入住了小镇' });
+  view.focus(name, 5);
+});
+
+$('btnOrientation').addEventListener('click', (e) => {
+  portrait = !portrait;
+  applyOrientation(e.currentTarget);
+});
+
+// ?portrait=1：直接以 9:16 竖屏打开，适合 OBS 窗口采集 / 第二块屏
+function applyOrientation(button) {
+  stage.classList.toggle('portrait', portrait);
+  button.textContent = portrait ? '切换到横屏 16:9' : '切换到竖屏 9:16';
+  button.classList.toggle('on', portrait);
+  resize();
+  requestAnimationFrame(resize);   // CSS 重排后再量一次，竖屏尺寸才准
+}
+
+$('btnVoice').addEventListener('click', (e) => {
+  voiceOn = !voiceOn;
+  e.currentTarget.textContent = '语音播报：' + (voiceOn ? '开' : '关');
+  e.currentTarget.classList.toggle('on', voiceOn);
+  if (voiceOn) speak('语音播报已打开');
+});
+
+$('btnReset').addEventListener('click', () => {
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+});
+
+canvas.addEventListener('click', (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * view.width;
+  const y = ((event.clientY - rect.top) / rect.height) * view.height;
+  let best = null, bestD = Infinity;
+  for (const r of snap.residents) {
+    const p = project(r.x, r.y, view.width, view.height);
+    const d = Math.hypot(p.sx - x, p.sy - y);
+    if (d < bestD) { bestD = d; best = r; }
+  }
+  if (best && bestD < 90) {
+    view.focus(best.name, 6);
+    pushEvent({ type: 'join', name: best.name, text: `当前：${statesLabel(best)} · ${best.coins} 币 · ${best.rank}` });
+  }
+});
+
+function statesLabel(r) {
+  return r.emoji ? '头顶有话' : r.walking ? '走路' : r.state;
+}
+
+// ---------- 数据桥 ----------
+const link = connectBridge({
+  onEvent(ev) {
+    town.feed(ev);
+    pushEvent({
+      type: ev.type,
+      name: ev.name,
+      text: ev.type === 'comment' ? ev.text : ev.type === 'gift' ? `送出 ${ev.count || 1} 个${ev.raw || ev.gift || '礼物'}` : ev.type === 'like' ? `点赞 +${ev.count || 1}` : '进来了',
+      cmd: ev.type === 'comment' ? (parseCommand(ev.text)?.intent ?? null) : null
+    });
+    if (ev.type === 'gift') view.focus(ev.name, 4);
+  },
+  onPeople(people) {
+    // 预热：把已知头像的观众先请进小镇（还没发言也算居民）
+    for (const person of people.slice(0, 12)) {
+      if (!person?.name || known.has(person.name)) continue;
+      known.add(person.name);
+      town.addViewer({ name: person.name, avatar: person.avatar || '' });
+      if (person.avatar) view.avatar(person.name, person.avatar);
+    }
+  },
+  onStatus(s) {
+    bridgeState = s;
+    const live = s.state === 'live';
+    $('bridgeDot').classList.toggle('on', live);
+    $('bridgeState').textContent = live ? '数据桥：已连接' : s.state === 'connecting' ? '数据桥：连接中…' : '数据桥：未连接';
+    // 接上真实数据就停掉演示（与原项目一致的“真人优先”）
+    demo.quiet = live;
+  }
+});
+
+function refreshModeBadge() {
+  const live = bridgeState.state === 'live';
+  $('modeBadge').textContent = live ? '真实直播间数据' : (demo.quiet ? '演示已暂停' : '演示模式');
+}
+
+// ---------- 启动 ----------
+const restored = restore();
+demo.seedRoom();
+if (!restored) {
+  pushEvent({ type: 'join', name: '我', text: '入住了小镇（这是你的分身）' });
+  town.feed({ type: 'join', name: '我' });
+}
+resize();
+if (new URLSearchParams(location.search).get('portrait') === '1') {
+  portrait = true;
+  applyOrientation($('btnOrientation'));
+}
+requestAnimationFrame(loop);
+setInterval(save, 8000);
+window.addEventListener('beforeunload', save);
+window.addEventListener('pagehide', save);
+window.__town = town; // 便于在控制台调试
+</script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+# 桌面窗口（launch.py / start.bat）依赖；纯浏览器预览不需要
+pywebview>=4.4

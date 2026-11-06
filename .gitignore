@@ -1,0 +1,13 @@
+.arena-webview-profile/
+__pycache__/
+*.pyc
+*.log
+
+# 开发工具产物（可重新生成）
+docs/frames/
+dist/
+
+# 本地桥的运行时状态（如果放在本目录）
+.bridge-room
+.bridge-profile/
+avatar-cache.json

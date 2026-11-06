@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>头像大乱斗 · Avatar Battle Royale</title>
+<style>
+  :root{--bg:#0c0e13;--panel:#161a22;--panel2:#1d222c;--line:#2a303c;--text:#f2ece0;--muted:#98a2b3;--accent:#ffb457;--hot:#ff4d6d;--ok:#7ee7c7}
+  *{box-sizing:border-box}html,body{height:100%}
+  body{margin:0;background:radial-gradient(1100px 600px at 70% -10%,#1a2230,#0c0e13 62%);color:var(--text);
+       font:14px/1.5 "Microsoft YaHei","PingFang SC",system-ui,sans-serif;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{font-size:17px;font-weight:800;letter-spacing:.3px}
+  .brand small{font-weight:400;color:var(--muted);margin-left:8px;font-size:12px}
+  .badges{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;align-items:center}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted);background:var(--panel)}
+  .badge b{color:var(--text);font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:#6b7280}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 11px;cursor:pointer;transition:.15s}
+  button:hover{border-color:#3d4557;transform:translateY(-1px)}
+  button.primary{background:linear-gradient(180deg,#ffc470,#ff9f3d);color:#231a08;border-color:#ffb457;font-weight:700}
+  button.on{border-color:var(--accent);color:var(--accent)}
+  main{flex:1;display:flex;gap:12px;padding:12px 16px;min-height:0}
+  .stage-wrap{flex:1;display:flex;flex-direction:column;gap:9px;min-width:0}
+  .stage{position:relative;flex:1;min-height:0;min-width:0;background:#080a0e;border:1px solid var(--line);border-radius:14px;
+         overflow:hidden;display:flex;align-items:center;justify-content:center;padding:6px}
+  .stage.portrait canvas{height:100%;width:auto;max-width:100%;aspect-ratio:9/16;border-radius:10px;box-shadow:0 0 0 1px #2a303c,0 20px 60px rgba(0,0,0,.5)}
+  canvas{display:block;border-radius:10px}
+  .dock{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .dock input{flex:1;min-width:200px;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;outline:none}
+  .dock input:focus{border-color:var(--accent)}
+  .hint{color:var(--muted);font-size:12px}
+  aside{width:334px;flex:none;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:auto}
+  aside h2{margin:0;font-size:11.5px;letter-spacing:1px;color:var(--muted);font-weight:700;text-transform:uppercase}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto}
+  aside>.card{flex:none}
+  .round-head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted)}
+  .round-head b{color:var(--accent)}
+  .round-bar{height:6px;border-radius:3px;background:#252b36;overflow:hidden;margin-top:7px}
+  .round-bar i{display:block;height:100%;background:linear-gradient(90deg,#7ee7c7,#ffd166)}
+  .rank{display:flex;flex-direction:column;gap:7px;font-size:13px}
+  .rank .row{display:flex;align-items:center;gap:8px}
+  .rank .no{width:16px;color:var(--muted);font-size:12px}
+  .rank .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rank .bar{width:62px;height:6px;border-radius:3px;background:#252b36;overflow:hidden}
+  .rank .bar i{display:block;height:100%;background:linear-gradient(90deg,#7ee7c7,#ffd166)}
+  .rank .m{color:var(--accent);font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
+  .events{max-height:190px;display:flex;flex-direction:column;gap:5px;font-size:12.5px}
+  .ev{display:flex;gap:7px;align-items:flex-start}
+  .ev .tag{flex:none;font-size:10.5px;padding:1px 6px;border-radius:5px;background:#252b36;color:var(--muted);margin-top:1px}
+  .ev.like .tag{background:#3b2230;color:#ff9fb2}
+  .ev.comment .tag{background:#1d2f33;color:#7ee7c7}
+  .ev.gift .tag{background:#3d2f14;color:var(--accent)}
+  .ev.eat .tag{background:#3a1a22;color:var(--hot)}
+  .log{max-height:170px;display:flex;flex-direction:column-reverse;gap:4px;font-size:12.5px;color:var(--muted)}
+  .log .k-eat{color:var(--hot)}.log .k-king{color:var(--accent)}.log .k-gift{color:#ffb457}
+  .hall{display:flex;flex-direction:column;gap:5px;font-size:12.5px}
+  .hall .row{display:flex;gap:8px;align-items:center}
+  .hall .rd{color:var(--muted);font-size:11px;min-width:38px}
+  .hall .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hall .ms{color:var(--accent)}
+  .hall .tt{font-size:10.5px;color:#c9a7ff}
+  .params{display:flex;flex-direction:column;gap:9px;font-size:12.5px;max-height:320px}
+  .arena-setting-row{margin:0}
+  .arena-setting-head{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:3px}
+  .arena-setting-head b{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:600}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:#2b323e;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer}
+  .arena-setting-note{margin:6px 0 0;color:var(--muted);font-size:11.5px}
+  .help{font-size:12.5px;color:var(--muted);line-height:1.7}
+  .live{display:flex;flex-direction:column;gap:8px;flex:none}
+  .live input{padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit;outline:none}
+  .live input:focus{border-color:var(--accent)}
+  .live-btns{display:flex;gap:6px;flex-wrap:wrap}
+  .live-btns button{flex:1;min-width:96px;font-size:12.5px;padding:6px 8px}
+  .live-hint{font-size:11.5px;color:var(--muted);line-height:1.6;white-space:pre-line;word-break:break-word}
+  .live-hint.ok{color:var(--ok)}
+  .live-hint.warn{color:var(--accent)}
+  .help b{color:var(--text)}
+  .help div{margin-bottom:2px}
+  @media (max-width:1100px){main{flex-direction:column}aside{width:auto;flex-direction:row;flex-wrap:wrap;max-height:none}.card{flex:1;min-width:240px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span data-i18n="app.title">头像大乱斗</span> <small data-i18n="app.subtitle"></small></div>
+  <div class="badges">
+    <span class="badge"><span class="dot" id="bridgeDot"></span><b id="bridgeState">数据桥：未连接</b></span>
+    <span class="badge" id="modeBadge" data-i18n="badge.demo">演示模式</span>
+    <button id="btnLang">中 / EN</button>
+    <button id="btnOrientation" data-i18n="btn.toPortrait">切换到竖屏 9:16</button>
+    <button id="btnVoice" data-i18n="btn.voiceOff">播报：关</button>
+    <button id="btnRecord" data-i18n="btn.record">记录本局王者</button>
+  </div>
+</header>
+
+<main>
+  <section class="stage-wrap">
+    <div class="stage" id="stage"><canvas id="arena"></canvas></div>
+    <div class="dock">
+      <input id="say" maxlength="60" data-i18n-ph="dock.placeholder" placeholder="以「我」的身份发弹幕（评论 = 变大），回车发送">
+      <button class="primary" id="btnSay" data-i18n="dock.send">发弹幕</button>
+      <button id="btnLike" data-i18n="dock.like">点赞 ×10</button>
+      <button data-gift="小心心">💗</button>
+      <button data-gift="啤酒">🍺</button>
+      <button data-gift="玫瑰">🌹</button>
+      <button data-gift="火箭">🚀</button>
+      <button id="btnJoin" data-i18n="dock.join">＋ 新观众进场</button>
+      <button id="btnDemo" data-i18n="btn.demoOn">演示模式：开</button>
+    </div>
+    <div class="hint" data-i18n="panel.hint"></div>
+  </section>
+
+  <aside>
+    <h2 data-i18n="bridge.title">直播连接（抖音）</h2>
+    <div class="card live">
+      <input id="room" maxlength="120" data-i18n-ph="bridge.roomPh" placeholder="直播间号或整条链接（回车保存）">
+      <div class="live-btns">
+        <button id="btnOpenLive" data-i18n="bridge.open">打开直播间窗口</button>
+        <button id="btnStartBridge" class="primary" data-i18n="bridge.start">开始抓取</button>
+        <button id="btnStopBridge" data-i18n="bridge.stop">停止抓取</button>
+        <button id="btnDiag" data-i18n="bridge.diag">诊断</button>
+      </div>
+      <div class="live-hint" id="liveHint"></div>
+    </div>
+
+    <h2 data-i18n="panel.round">本局</h2>
+    <div class="card">
+      <div class="round-head"><span id="roundLabel">第 1 局</span><b id="roundLeft">10:00</b></div>
+      <div class="round-bar"><i id="roundBar" style="width:0%"></i></div>
+    </div>
+
+    <h2 data-i18n="panel.hall">王者墙</h2>
+    <div class="card hall" id="hall"></div>
+
+    <h2 data-i18n="panel.rank">体型榜</h2>
+    <div class="card rank" id="rank"></div>
+
+    <h2 data-i18n="panel.events">直播事件</h2>
+    <div class="card events" id="events"></div>
+
+    <h2 data-i18n="panel.log">播报</h2>
+    <div class="card log" id="log"></div>
+
+    <h2 data-i18n="panel.settings">现场调参</h2>
+    <div class="card params" id="settingsBody"></div>
+
+    <h2 data-i18n="panel.help">怎么玩</h2>
+    <div class="card help">
+      <div data-i18n="help.like"></div>
+      <div data-i18n="help.comment"></div>
+      <div data-i18n="help.gift"></div>
+      <div data-i18n="help.rule"></div>
+      <div data-i18n="help.decay"></div>
+      <div data-i18n="help.revive"></div>
+    </div>
+  </aside>
+</main>
+
+<script type="module">
+import { Arena, WORLD, giftKeyOf } from './arena-engine.mjs';
+import { ArenaRender } from './arena-render.mjs';
+import { DemoFeed, connectBridge, DEMO_NAMES } from './arena-bridge.mjs';
+import { RoundManager, TITLES } from './arena-rounds.mjs';
+import { ArenaSpeech } from './arena-speech.mjs';
+import { ARENA_DEFAULTS, sanitizeArenaSettings, applyArenaSettings, renderArenaSettings } from './arena-settings.mjs';
+import { t } from './arena-i18n.mjs';
+
+const SETTINGS_KEY = 'arenaSettings';
+const HALL_KEY = 'arenaHall';
+const $ = (id) => document.getElementById(id);
+const canvas = $('arena');
+const stage = $('stage');
+
+// ---------- 设置 ----------
+let settings = sanitizeArenaSettings((() => {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); } catch { return null; }
+})());
+const saveSettings = () => {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* 隐私模式忽略 */ }
+};
+const tr = (key, vars) => t(settings.lang, key, vars);
+
+// ---------- 世界 / 局 / 声音 / 画面 ----------
+const arena = new Arena({ seed: Date.now() % 100000 });
+const rounds = new RoundManager({
+  roundSeconds: settings.roundMinutes * 60,
+  storage: {
+    read() { try { return JSON.parse(localStorage.getItem(HALL_KEY) || 'null'); } catch { return null; } },
+    write(value) { try { localStorage.setItem(HALL_KEY, JSON.stringify(value)); } catch { /* 忽略 */ } }
+  }
+});
+const speech = new ArenaSpeech({ lang: settings.lang });
+const render = new ArenaRender(canvas, { t: tr, lang: settings.lang });
+
+applyArenaSettings(settings, arena, rounds);
+rounds.start(Date.now());
+speech.enabled = settings.voice;
+
+const demo = new DemoFeed(arena, {
+  rate: 3.2,
+  onEvent(ev) {
+    pushEvent(ev);
+    if (ev.type === 'join') {
+      render.toast(tr('toast.welcome', { name: ev.name }), 'join', 3.5);
+      if (speech.enabled) speech.welcome(ev.name);
+    }
+  }
+});
+
+// ---------- 静态文案 ----------
+function applyI18n() {
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = tr(el.dataset.i18n);
+  for (const el of document.querySelectorAll('[data-i18n-ph]')) el.placeholder = tr(el.dataset.i18nPh);
+  $('btnOrientation').textContent = tr(settings.portrait ? 'btn.toLandscape' : 'btn.toPortrait');
+  $('btnVoice').textContent = tr(settings.voice ? 'btn.voiceOn' : 'btn.voiceOff');
+  $('btnVoice').classList.toggle('on', settings.voice);
+  $('btnDemo').textContent = tr(settings.demo ? 'btn.demoOn' : 'btn.demoOff');
+  $('btnDemo').classList.toggle('on', !settings.demo);
+  $('modeBadge').textContent = bridgeState.state === 'live' ? tr('badge.live') : tr('badge.demo');
+  render.setLang(settings.lang);
+  speech.setLang(settings.lang);
+}
+
+// ---------- 面板 ----------
+let feedLines = [];
+function pushEvent(ev) {
+  feedLines.unshift(ev);
+  feedLines = feedLines.slice(0, 40);
+  renderEvents();
+}
+function renderEvents() {
+  const box = $('events');
+  box.replaceChildren();
+  for (const ev of feedLines.slice(0, 16)) {
+    const row = document.createElement('div');
+    row.className = 'ev ' + ev.type;
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = ({ like: '赞', comment: '评', gift: '礼', join: '进', eat: '吃' })[ev.type] || '进';
+    const body = document.createElement('span');
+    body.textContent = ev.type === 'like' ? `${ev.name} +${ev.count || 1}`
+      : ev.type === 'gift' ? `${ev.name} ${ev.raw || ''}`
+      : ev.type === 'join' ? `${ev.name}`
+      : `${ev.name}：${ev.text || ''}`;
+    row.append(tag, body);
+    box.append(row);
+  }
+}
+function renderRank(snap) {
+  const box = $('rank');
+  box.replaceChildren();
+  if (!snap.ranking.length) {
+    const empty = document.createElement('div');
+    empty.style.color = 'var(--muted)';
+    empty.textContent = tr('panel.rankEmpty');
+    box.append(empty);
+    return;
+  }
+  const max = Math.max(1, ...snap.ranking.map((r) => r.mass));
+  snap.ranking.forEach((r, i) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<span class="no">${i + 1}</span><span class="nm"></span>
+      <span class="bar"><i style="width:${(r.mass / max) * 100}%"></i></span><span class="m">${r.mass}</span>`;
+    row.querySelector('.nm').textContent = r.name;
+    box.append(row);
+  });
+}
+function renderHall() {
+  const box = $('hall');
+  box.replaceChildren();
+  if (!rounds.hall.length) {
+    const empty = document.createElement('div');
+    empty.style.color = 'var(--muted)';
+    empty.textContent = tr('panel.hallEmpty');
+    box.append(empty);
+    return;
+  }
+  for (const h of rounds.hall.slice(0, 5)) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const rd = document.createElement('span');
+    rd.className = 'rd';
+    rd.textContent = '#' + h.round;
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = h.name;
+    const ms = document.createElement('span');
+    ms.className = 'ms';
+    ms.textContent = String(h.mass);
+    const tt = document.createElement('span');
+    tt.className = 'tt';
+    tt.textContent = h.titles.map((k) => TITLES[k]?.[settings.lang] || '').filter(Boolean).join(' ');
+    row.append(rd, nm, ms, tt);
+    box.append(row);
+  }
+}
+function renderLog(snap) {
+  const box = $('log');
+  box.replaceChildren();
+  for (const line of snap.log.slice(-12)) {
+    const div = document.createElement('div');
+    div.className = 'k-' + line.kind;
+    div.textContent = line.text;
+    box.append(div);
+  }
+}
+function renderRound(now) {
+  const left = Math.max(0, Math.round(rounds.remaining(now)));
+  $('roundLabel').textContent = tr('hud.round', { n: rounds.round });
+  $('roundLeft').textContent = String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
+  $('roundBar').style.width = Math.round(Math.min(1, Math.max(0, rounds.progress(now))) * 100) + '%';
+}
+
+// ---------- 主循环 ----------
+let last = performance.now();
+let snap = arena.snapshot();
+let panelAt = 0;
+function step(dt) {
+  const now = Date.now();
+  if (demoOn() && !demo.quiet) demo.tick(dt);
+  arena.tick(dt);
+
+  // 结构化事件：局统计 + 播报
+  for (const ev of arena.takeEvents()) {
+    if (ev.kind === 'eat') {
+      rounds.observe(ev);
+      render.toast(tr('toast.eat', { a: ev.predator, b: ev.prey }), 'eat', 2.6);
+    } else if (ev.kind === 'revive') {
+      render.toast(tr('toast.revive', { name: ev.name }), 'join', 2.6);
+      if (speech.enabled) speech.revive(ev.name);
+    }
+  }
+  render.spawnEffects(arena.takeEffects());
+
+  snap = arena.snapshot();
+  const result = rounds.tick(now, snap);
+  if (result) onSettled(result);
+
+  render.frame(dt, snap, {
+    round: { index: rounds.round, remaining: rounds.remaining(now), progress: rounds.progress(now) },
+    lastWinner: result?.winner?.name || rounds.hall[0]?.name || ''
+  });
+
+  if (now - panelAt > 350) {
+    panelAt = now;
+    renderRank(snap);
+    renderLog(snap);
+    renderRound(now);
+  }
+}
+
+function onSettled(result) {
+  renderHall();
+  const name = result.winner?.name || '';
+  render.toast(tr('toast.round', { round: result.round, name }), 'king', 5);
+  if (speech.enabled) speech.round(result);
+  for (const title of result.titles.slice(0, 3)) {
+    const label = TITLES[title.key]?.[settings.lang] || title.key;
+    render.toast(tr('toast.title', { name: title.name, title: label }), 'king', 4);
+    if (speech.enabled) speech.title(title.name, label);
+  }
+}
+
+function loop(now) {
+  const dt = Math.min(0.06, (now - last) / 1000);
+  last = now;
+  step(dt);
+  requestAnimationFrame(loop);
+}
+
+// 页面被切到后台时 rAF 会停，用定时器继续推进，回来时画面不"跳"
+setInterval(() => {
+  if (!document.hidden) return;
+  const now = performance.now();
+  const dt = Math.min(1, (now - last) / 1000);
+  last = now;
+  step(dt);
+}, 250);
+
+// ---------- 尺寸 / 竖屏 ----------
+function resize() {
+  const rect = stage.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  if (settings.portrait) {
+    const box = canvas.getBoundingClientRect();
+    render.resize(Math.max(180, box.width), Math.max(320, box.height), dpr, false);
+  } else {
+    render.resize(Math.max(320, rect.width - 12), Math.max(240, rect.height - 12), dpr, true);
+  }
+}
+new ResizeObserver(resize).observe(stage);
+window.addEventListener('resize', resize);
+
+function applyOrientation() {
+  stage.classList.toggle('portrait', settings.portrait);
+  $('btnOrientation').textContent = tr(settings.portrait ? 'btn.toLandscape' : 'btn.toPortrait');
+  $('btnOrientation').classList.toggle('on', settings.portrait);
+  resize();
+  requestAnimationFrame(resize);
+}
+$('btnOrientation').addEventListener('click', () => {
+  settings.portrait = !settings.portrait;
+  saveSettings();
+  applyOrientation();
+});
+
+// ---------- 互动 ----------
+const ME = '我';
+const demoOn = () => settings.demo;
+function ensureMe() {
+  if (!arena.avatars.get(ME)?.alive) arena.feed({ type: 'like', name: ME, count: 1 });
+}
+function sendComment(text) {
+  const value = String(text || '').trim();
+  if (!value) return;
+  ensureMe();
+  arena.feed({ type: 'comment', name: ME, text: value });
+  pushEvent({ type: 'comment', name: ME, text: value });
+  $('say').value = '';
+}
+$('btnSay').addEventListener('click', () => sendComment($('say').value));
+$('say').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendComment($('say').value); });
+$('btnLike').addEventListener('click', () => {
+  ensureMe();
+  arena.feed({ type: 'like', name: ME, count: 10 });
+  pushEvent({ type: 'like', name: ME, count: 10 });
+});
+document.querySelectorAll('[data-gift]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const raw = btn.dataset.gift;
+    ensureMe();
+    arena.feed({ type: 'gift', name: ME, raw, gift: giftKeyOf(raw), count: 1 });
+    pushEvent({ type: 'gift', name: ME, raw });
+  });
+});
+$('btnJoin').addEventListener('click', () => {
+  const name = DEMO_NAMES[Math.floor(Math.random() * DEMO_NAMES.length)];
+  arena.feed({ type: 'join', name });
+  pushEvent({ type: 'join', name });
+  render.toast(tr('toast.welcome', { name }), 'join', 3.5);
+  if (speech.enabled) speech.welcome(name);
+});
+$('btnDemo').addEventListener('click', () => {
+  settings.demo = !settings.demo;
+  demo.quiet = !settings.demo || bridgeState.state === 'live';
+  saveSettings();
+  applyI18n();
+});
+$('btnVoice').addEventListener('click', () => {
+  settings.voice = !settings.voice;
+  speech.enabled = settings.voice;
+  if (!settings.voice) speech.stop();
+  saveSettings();
+  applyI18n();
+  if (settings.voice) speech.say(tr('app.title'));
+});
+$('btnRecord').addEventListener('click', () => {
+  const top = arena.recordKing();
+  if (!top) return;
+  render.toast(tr('toast.king', { name: top.name, mass: Math.round(top.mass) }), 'king', 5);
+  if (speech.enabled) speech.king(top.name, Math.round(top.mass));
+});
+$('btnLang').addEventListener('click', () => {
+  settings.lang = settings.lang === 'zh' ? 'en' : 'zh';
+  saveSettings();
+  applyI18n();
+  renderPanelSettings();
+  renderEvents();
+  renderHall();
+  renderRank(arena.snapshot());
+});
+
+// ---------- 调参面板 ----------
+function renderPanelSettings() {
+  renderArenaSettings($('settingsBody'), settings, () => {
+    saveSettings();
+    applyArenaSettings(settings, arena, rounds);
+    applyI18n();
+  });
+}
+
+// ---------- 数据桥 ----------
+// ?demo=1：强制演示模式（截图、录屏、没有数据桥时预览用）
+const FORCED_DEMO = new URLSearchParams(location.search).get('demo') === '1';
+let bridgeState = { state: 'offline' };
+let savedRoomId = '';
+try { savedRoomId = String(localStorage.getItem('arenaRoom') || '').replace(/\D/g, '').slice(0, 25); } catch { /* 忽略 */ }
+const link = FORCED_DEMO
+  ? { stop() {}, reconnect() {}, setRoom() {} }
+  : connectBridge({
+  room: savedRoomId,
+  onEvent(ev) {
+    arena.feed(ev);
+    pushEvent(ev);
+    lastEventAt = Date.now();
+    noEventWarned = false;
+    if (ev.avatar) render.avatar(ev.name, ev.avatar);
+    if (ev.type === 'join') {
+      render.toast(tr('toast.welcome', { name: ev.name }), 'join', 3.5);
+      if (speech.enabled) speech.welcome(ev.name);
+    }
+  },
+  onPeople(people) {
+    for (const p of people.slice(0, 12)) if (p?.avatar) render.avatar(p.name, p.avatar);
+  },
+  onStatus(s) {
+    bridgeState = s;
+    const live = s.state === 'live';
+    $('bridgeDot').classList.toggle('on', live);
+    $('bridgeState').textContent = live ? tr('badge.bridgeOn') : s.state === 'connecting' ? tr('badge.bridgeConnecting') : tr('badge.bridge');
+    demo.quiet = FORCED_DEMO ? false : (live || !settings.demo);
+    if (live) liveHint(tr('bridge.startOk'), 'ok');
+    applyI18n();
+  }
+});
+
+// ---------- 直播连接（抖音）：房间号 → 直播间窗口 → 数据桥 ----------
+const ROOM_KEY = 'arenaRoom';
+function liveHint(text, kind = '') {
+  const box = $('liveHint');
+  box.textContent = text;
+  box.className = 'live-hint' + (kind ? ' ' + kind : '');
+}
+function currentRoom() {
+  return String($('room').value || '').replace(/\D/g, '').slice(0, 25);
+}
+async function api(path) {
+  const response = await fetch(path, { signal: AbortSignal.timeout(20000) });
+  return response.json().catch(() => ({ ok: false, error: 'bad response' }));
+}
+function rememberRoom() {
+  try { localStorage.setItem(ROOM_KEY, currentRoom()); } catch { /* 忽略 */ }
+  // 数据桥已连上时立刻切房间，避免它还在采上一个直播间
+  if (currentRoom()) link.setRoom(currentRoom());
+  liveHint(currentRoom() ? `直播间：${currentRoom()}` : tr('bridge.idle'));
+}
+
+$('room').addEventListener('change', rememberRoom);
+$('room').addEventListener('keydown', (e) => { if (e.key === 'Enter') rememberRoom(); });
+
+$('btnOpenLive').addEventListener('click', async () => {
+  if (!currentRoom()) return liveHint(tr('bridge.needRoom'), 'warn');
+  rememberRoom();
+  liveHint('正在打开直播间窗口…');
+  const result = await api('/__open-live?room=' + currentRoom() + '&portrait=' + (settings.portrait ? 1 : 0));
+  if (!result.ok) return liveHint(tr('bridge.error', { msg: result.error || '' }), 'warn');
+  liveHint(result.already ? tr('bridge.openAlready') : tr('bridge.openOk'), 'ok');
+});
+
+$('btnStartBridge').addEventListener('click', async () => {
+  if (!currentRoom()) return liveHint(tr('bridge.needRoom'), 'warn');
+  rememberRoom();
+  liveHint('正在启动数据桥…');
+  const result = await api('/__start-bridge?room=' + currentRoom());
+  if (!result.ok) {
+    const message = result.error === '请先点「打开直播间窗口」并完成登录，再开始抓取'
+      ? result.error
+      : (result.error || '');
+    return liveHint(tr('bridge.error', { msg: message }), 'warn');
+  }
+  liveHint(tr('bridge.startOk'), 'ok');
+  link.reconnect();   // 立刻重连，不用等 3 秒轮询
+});
+
+$('btnStopBridge').addEventListener('click', async () => {
+  const result = await api('/__stop-bridge');
+  liveHint(result.ok ? tr('bridge.stopOk') : tr('bridge.error', { msg: result.error || '' }), result.ok ? '' : 'warn');
+});
+
+$('btnDiag').addEventListener('click', async () => {
+  liveHint('诊断中…');
+  try {
+    const d = await api('/__diag');
+    const bridgeText = d.bridge?.ok ? `已连接 ${d.bridge.url}（房间 ${d.bridge.room || '未知'}）` : '未连接';
+    const win = d.liveWindow || {};
+    const windowText = !win.listening ? '未打开（远程调试端口没监听）'
+      : (win.pages?.length ? win.pages.join('\n    ') : '端口在，但读不到标签页');
+    const procText = d.bridgeRunning ? '运行中' : '未由本页面启动';
+    const log = d.logTail || '（没有日志）';
+    liveHint(tr('bridge.diagHint', { bridge: bridgeText, window: windowText, proc: procText, log }), d.bridge?.ok ? 'ok' : 'warn');
+  } catch (error) {
+    liveHint(tr('bridge.error', { msg: String(error && error.message || error) }), 'warn');
+  }
+});
+
+// 采集器连上了但迟迟没有弹幕 → 主动提示排查（这是最常见的"没反应"）
+let lastEventAt = Date.now();
+let noEventWarned = false;
+setInterval(() => {
+  if (bridgeState.state !== 'live' || document.hidden) return;
+  if (Date.now() - lastEventAt < 25000 || noEventWarned) return;
+  noEventWarned = true;
+  liveHint(tr('bridge.noEvents'), 'warn');
+}, 5000);
+
+// 打开页面时回填上次的房间号，并显示数据桥查找结果
+(async () => {
+  try {
+    const saved = localStorage.getItem(ROOM_KEY) || '';
+    if (saved) $('room').value = saved;
+  } catch { /* 忽略 */ }
+  if (FORCED_DEMO) { liveHint(tr('bridge.forcedDemo'), ''); return; }
+  try {
+    const status = await api('/__bridge-status');
+    if (!status.bridgeFound) liveHint(tr('bridge.noProject'), 'warn');
+    else if (status.ok) liveHint(tr('bridge.startOk'), 'ok');
+    else liveHint(tr('bridge.idle'));
+  } catch { liveHint(tr('bridge.idle')); }
+})();
+
+// ---------- 启动 ----------
+// 支持 OBS / 场景窗口直接带参打开：arena.html?portrait=1&lang=en
+const params = new URLSearchParams(location.search);
+if (params.get('portrait') === '1') settings.portrait = true;
+if (params.get('lang') === 'en') settings.lang = 'en';
+demo.quiet = FORCED_DEMO ? false : (bridgeState.state === 'live' || !settings.demo);
+applyI18n();
+applyOrientation();
+renderPanelSettings();
+renderHall();
+renderRank(arena.snapshot());
+requestAnimationFrame(loop);
+window.__arena = arena;
+window.__rounds = rounds;
+</script>
+</body>
+</html>
