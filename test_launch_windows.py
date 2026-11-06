@@ -1,10 +1,13 @@
 import json
+import os
 import socket
 import sys
+import tempfile
 import threading
 import types
 import unittest
 import urllib.request
+from pathlib import Path
 
 import launch
 
@@ -15,24 +18,68 @@ def free_port():
         return sock.getsockname()[1]
 
 
+class BundledBridgeTests(unittest.TestCase):
+    """开箱即用：数据桥必须真的随仓库分发，而不是要求用户再下载别的项目。"""
+
+    def test_bridge_files_are_bundled(self):
+        bridge = launch.ROOT / 'bridge'
+        self.assertTrue((bridge / 'douyin-bridge.mjs').exists())
+        self.assertTrue((bridge / 'bridge-ws.mjs').exists())
+        # MIT 合规：必须保留上游版权声明
+        self.assertTrue((bridge / 'LICENSE').exists())
+        license_text = (bridge / 'LICENSE').read_text(encoding='utf-8')
+        self.assertIn('MIT License', license_text)
+        self.assertIn('志哥AI', license_text)
+
+    def test_bridge_dir_prefers_bundled(self):
+        saved = os.environ.pop('ARENA_BRIDGE_DIR', None)
+        try:
+            self.assertEqual(launch.bridge_dir(), launch.ROOT / 'bridge')
+        finally:
+            if saved is not None:
+                os.environ['ARENA_BRIDGE_DIR'] = saved
+
+    def test_env_override_wins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'douyin-bridge.mjs').write_text('// fake', encoding='utf-8')
+            os.environ['ARENA_BRIDGE_DIR'] = tmp
+            try:
+                self.assertEqual(launch.bridge_dir(), Path(tmp))
+            finally:
+                os.environ.pop('ARENA_BRIDGE_DIR', None)
+
+
 class WindowSizeTests(unittest.TestCase):
     def test_landscape_fits_work_area(self):
         width, height = launch.window_size(1920, 1080, 'landscape')
         self.assertLessEqual(width, 1920)
         self.assertLessEqual(height, 1080)
         self.assertGreater(width, 560)
+        self.assertGreater(width, height)                 # 横屏必须更宽
 
     def test_portrait_never_taller_than_screen(self):
         width, height = launch.window_size(1920, 1080, 'portrait')
         self.assertLessEqual(height, 1080)
-        self.assertGreater(height, width)  # 竖屏
+        self.assertGreater(height, width)                 # 竖屏必须更高
 
     def test_tiny_screen_still_gives_usable_window(self):
         width, height = launch.window_size(1024, 600, 'portrait-1080p')
-        self.assertGreaterEqual(width, 560)
+        self.assertGreaterEqual(width, 300)
         self.assertGreaterEqual(height, 420)
         self.assertLessEqual(width, 1024)
         self.assertLessEqual(height, 600)
+        self.assertGreater(height, width)                 # 小屏也保持竖屏比例
+
+    def test_headless_work_area_keeps_orientation(self):
+        """回归：CI runner 没有真实桌面时会退化成 1280x800，
+        旧实现把竖屏算成 760x760 正方形（CI 就是这样挂的）。"""
+        for area in ((1280, 800), (1024, 768), (800, 600), (640, 480)):
+            landscape = launch.window_size(*area, 'landscape')
+            portrait = launch.window_size(*area, 'portrait')
+            self.assertGreater(landscape[0], landscape[1], f'横屏退化了: {area} {landscape}')
+            self.assertGreater(portrait[1], portrait[0], f'竖屏退化了: {area} {portrait}')
+            self.assertLessEqual(landscape[0], area[0])
+            self.assertLessEqual(portrait[1], area[1])
 
 
 class MimeTests(unittest.TestCase):
@@ -44,14 +91,23 @@ class MimeTests(unittest.TestCase):
 
 
 class ServerTests(unittest.TestCase):
+    def setUp(self):
+        self._orig = (launch.bridge_status, launch.bridge_log_tail)
+        # 让 /__bridge-status 立刻返回，不依赖本机有没有数据桥（CI 上更稳更快）
+        launch.bridge_status = lambda: {'ok': False}
+        launch.bridge_log_tail = lambda lines=8, max_chars=1200: ''
+
+    def tearDown(self):
+        launch.bridge_status, launch.bridge_log_tail = self._orig
+
     def test_server_answers_health_and_bridge_status(self):
         port = free_port()
         url, server = launch.ensure_server(port)
         try:
             self.assertIsNotNone(server)
-            with urllib.request.urlopen(url + '__health', timeout=3) as response:
+            with urllib.request.urlopen(url + '__health', timeout=10) as response:
                 self.assertEqual(json.load(response)['app'], 'avatar-arena')
-            with urllib.request.urlopen(url + '__bridge-status', timeout=3) as response:
+            with urllib.request.urlopen(url + '__bridge-status', timeout=10) as response:
                 payload = json.load(response)
             self.assertIn('ok', payload)
             self.assertIsInstance(payload['ok'], bool)
@@ -87,6 +143,14 @@ class FakeWebview(types.ModuleType):
 
 
 class LaunchTests(unittest.TestCase):
+    def setUp(self):
+        self._orig_work_area = launch.work_area
+        # 固定工作区尺寸，测试不依赖跑测试的机器有没有真实桌面（CI 上尤其重要）
+        launch.work_area = lambda: (1920, 1080)
+
+    def tearDown(self):
+        launch.work_area = self._orig_work_area
+
     def run_main(self, argv):
         fake = FakeWebview()
         argv_backup = sys.argv

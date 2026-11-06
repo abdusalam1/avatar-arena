@@ -109,16 +109,18 @@ BROWSER_CANDIDATES = (
 
 
 def bridge_dir():
-    """直播数据桥（抖音弹幕采集器）所在的目录。
+    """抖音弹幕采集器所在的目录。
 
-    默认复用「头像打印机」项目里的 douyin-bridge.mjs —— 只调用，不修改它。
-    打印项目换了位置，就用环境变量 ARENA_BRIDGE_DIR 指过去。
+    查找顺序：
+      1. 环境变量 ARENA_BRIDGE_DIR（想换成自己的/新版采集器时用）
+      2. 本仓库自带的 bridge/（上游 MIT 代码原样内置，开箱即用）
+      3. 同级的 LiveApp/（兼容"配合头像打印机项目一起用"的老用法）
     """
     env_dir = os.environ.get('ARENA_BRIDGE_DIR', '').strip()
     candidates = []
     if env_dir:
         candidates.append(Path(env_dir))
-    candidates += [ROOT.parent / 'LiveApp', ROOT / 'bridge']
+    candidates += [ROOT / 'bridge', ROOT.parent / 'LiveApp']
     for candidate in candidates:
         try:
             if (candidate / 'douyin-bridge.mjs').exists():
@@ -349,11 +351,23 @@ def work_area():
 
 
 def window_size(area_w, area_h, orient='landscape', margin=40):
-    """窗口尺寸：按屏幕可用区域收敛，永远不超出屏幕（竖屏尤其容易超过 1080p 高度）。"""
+    """窗口尺寸：等比缩放到屏幕可用区域内，**保持横竖屏比例**。
+
+    早期版本是 width/height 各自独立裁剪，在没有真实桌面尺寸的环境（CI runner、
+    远程会话）里会退化成 1280x800，竖屏窗口被算成 760x760 的正方形。
+    """
     want_w, want_h = ORIENTATIONS.get(orient, ORIENTATIONS['landscape'])
-    width = min(want_w, max(560, area_w - margin))
-    height = min(want_h, max(420, area_h - margin))
-    return width, height
+    avail_w = max(320, area_w - margin)
+    avail_h = max(320, area_h - margin)
+    scale = min(1.0, avail_w / want_w, avail_h / want_h)
+    width = max(320, int(want_w * scale))
+    height = max(320, int(want_h * scale))
+    # 保底：竖屏必须更高、横屏必须更宽（极端小屏下按比例回推一次）
+    if want_h > want_w and height <= width:
+        height = max(320, min(avail_h, int(width * want_h / want_w)))
+    elif want_w > want_h and width <= height:
+        width = max(320, min(avail_w, int(height * want_w / want_h)))
+    return min(width, avail_w), min(height, avail_h)
 
 
 class ArenaHandler(SimpleHTTPRequestHandler):

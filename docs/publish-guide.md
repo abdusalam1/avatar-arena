@@ -6,7 +6,9 @@
 
 - [x] `README.md` 底部「作者 / 联系」：salmjohn / @abdusalam1 / salmjohnn@outlook.com + 微信二维码（`docs/screenshots/wechat-qr.png`）
 - [x] `LICENSE`：`Copyright (c) 2026 salmjohn`
-- [x] 上游「头像打印机」：[rhfbgfgfdg999999/3d-printer-live](https://github.com/rhfbgfgfdg999999/3d-printer-live)（作者 VESAM9J / 志哥AI，已核实仓库标题与描述一致）；另附 [B 站教程视频](https://www.bilibili.com/video/BV1WJxx61EUf/)
+- [x] 上游「头像打印机」：[rhfbgfgfdg999999/3d-printer-live](https://github.com/rhfbgfgfdg999999/3d-printer-live)（作者 VESAM9J / 志哥AI，MIT，213★）
+      —— **已按 MIT 许可把它的数据桥原样内置到 `bridge/`**（保留 `bridge/LICENSE` 原作者版权声明 + `bridge/README.md` 写明出处/版本 commit）；另附 [B 站教程视频](https://www.bilibili.com/video/BV1WJxx61EUf/)
+- [x] 仓库根 `LICENSE` 只覆盖本项目代码；`bridge/` 的许可单独放在 `bridge/LICENSE`（MIT 合规要求保留版权声明）
 - [ ] 可选：`CHANGELOG.md` 里补上发布日期
 - [ ] 可选：二维码想换成"公众号/群二维码"，重跑 `python docs/tools/make-wechat-qr.py` 即可（换掉源图）
 

@@ -1,2 +1,5 @@
 # 桌面窗口（launch.py / start.bat）依赖；纯浏览器预览不需要
 pywebview>=4.4
+
+# 另需 Node.js 18+：仅用于 bridge/ 里内置的抖音数据桥（接真实弹幕时才用）。
+# 使用的是 Node 内置模块，无需 npm install。

@@ -10,10 +10,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT-3da639.svg" alt="MIT">
-  <img src="https://img.shields.io/badge/node-%E2%89%A522-339933.svg" alt="node">
+  <img src="https://img.shields.io/badge/node-%E2%89%A518-339933.svg" alt="node">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-3776ab.svg" alt="python">
   <img src="https://img.shields.io/badge/platform-Windows-0078d4.svg" alt="windows">
-  <img src="https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-41%20JS%20%2B%2020%20Python-7ee7c7.svg" alt="tests">
+  <img src="https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-41%20JS%20%2B%2024%20Python-7ee7c7.svg" alt="tests">
 </p>
 
 ---
@@ -32,7 +32,14 @@
 
 ## 快速开始
 
-需要 **Python 3.9+**（Windows 上还需要 WebView2 Runtime，Win10/11 一般自带）。
+开箱即用，**不需要再下载别的项目**——抖音数据桥已经内置在 `bridge/` 里了。
+
+| 依赖 | 是否必需 | 说明 |
+|---|---|---|
+| **Python 3.9+** | 必需 | 启动本地服务和桌面窗口 |
+| **pywebview** | 桌面窗口需要 | `pip install pywebview`；纯浏览器预览不用 |
+| **Node.js 18+** | 接真实弹幕需要 | 跑内置数据桥；只玩演示模式不用 |
+| WebView2 Runtime | Windows 桌面窗口需要 | Win10/11 一般自带 |
 
 ```bash
 pip install pywebview     # 只有用桌面窗口才需要；纯浏览器预览可以跳过
@@ -92,18 +99,24 @@ python -m http.server 8090
 
 ## 接入真实抖音弹幕
 
-页面右上「直播连接（抖音）」面板里就是完整链路，和开源项目「头像打印机」一致：
+**数据桥已内置**（`bridge/`，Node.js，零 npm 依赖），只需要 Node.js 18+，不用再下载别的项目。页面右上「直播连接（抖音）」面板里就是完整链路：
 
 1. 填**直播间号或整条链接**（如 `123456789`），回车保存；
 2. 点 **「打开直播间窗口」** —— 用 Edge/Chrome 开一个带远程调试端口的直播窗口，扫码登录抖音；
-3. 点 **「开始抓取」** —— 启动数据桥，页面自动连上 `ws://127.0.0.1:8765`，真实昵称/头像/点赞/评论/礼物就进来了。
+3. 点 **「开始抓取」** —— 启动 `bridge/douyin-bridge.mjs`，页面自动连上 `ws://127.0.0.1:8765`，真实昵称/头像/点赞/评论/礼物就进来了。
 
-**数据桥不在本仓库里**：它来自另一个开源项目「头像打印机」——[rhfbgfgfdg999999/3d-printer-live](https://github.com/rhfbgfgfdg999999/3d-printer-live)（作者 VESAM9J / 志哥AI，完全开源免费，[B 站教程视频](https://www.bilibili.com/video/BV1WJxx61EUf/)）。本程序只在运行时调用它、**不包含也不修改它的代码**，所以发布时请保持这个分工：
+**关于内置的 bridge/**
 
-- 想接真实弹幕：下载「头像打印机」并启动它的数据桥；本程序默认在 `../LiveApp` 找它，也可以用环境变量 `ARENA_BRIDGE_DIR` 指过去。
-- 只想要画面效果：什么都不用装，`?demo=1` 或直接启动（无桥时自动进演示模式）。
+| | |
+|---|---|
+| 来源 | 开源项目「头像打印机」[rhfbgfgfdg999999/3d-printer-live](https://github.com/rhfbgfgfdg999999/3d-printer-live)（作者 VESAM9J / 志哥AI，213★，[B 站教程](https://www.bilibili.com/video/BV1WJxx61EUf/)） |
+| 许可 | **MIT**，版权归原作者，见 [bridge/LICENSE](bridge/LICENSE)；本仓库**原样内置、未修改** |
+| 版本 | 上游 commit `c3a21d4`（2026-11-01） |
+| 只含 | `douyin-bridge.mjs`（采集器）+ `bridge-ws.mjs`（内置 WS 服务），仅用 Node 内置模块 |
 
-**接了但没反应？** 点页面上的 **「诊断」**：它会显示数据桥状态、直播间窗口里的标签页 URL、采集器进程、以及采集器日志最后几行。常见原因见 [FAQ](#faq)。
+想换成自己的采集器：把 `ARENA_BRIDGE_DIR` 指向该目录即可（优先级最高）。想更新上游新版：见 [bridge/README.md](bridge/README.md)。
+
+**接了但没反应？** 点页面上的 **「诊断」**：它会显示数据桥状态、直播间窗口里的标签页 URL、采集器进程、以及采集器日志最后几行（日志在 `bridge/desktop-bridge.log`）。常见原因见 [FAQ](#faq)。
 
 > ⚠️ 商用/上平台请走抖音「直播小玩法」官方通道（提案 → 审核 → exe 挂直播伴侣 → 官方数据推送）。本仓库的抓取链路只适合自己直播间自播测试。
 
@@ -115,7 +128,7 @@ python -m http.server 8090
 直播间 (抖音)
    │  弹幕/点赞/礼物
    ▼
-数据桥 (外部，可替换)  ──WebSocket(8765)──►  arena-bridge.mjs   事件接入 + 本地演示模拟器
+数据桥 bridge/（内置，可替换）──WebSocket(8765)──►  arena-bridge.mjs   事件接入 + 本地演示模拟器
                                                 │
                                                 ▼
                                         arena-engine.mjs        纯逻辑：规则 / 物理 / 衰减 / 复活
@@ -136,6 +149,7 @@ python -m http.server 8090
 | `arena-speech.mjs` | 欢迎 / 王者 / 称号播报（浏览器 TTS） |
 | `arena-i18n.mjs` | 中英文案一张表（不复制第二份 HTML） |
 | `arena-bridge.mjs` | WebSocket 接入 + 数据桥探测 + 本地演示模拟器 |
+| `bridge/` | **内置的抖音数据桥**（上游 MIT 原样内置：`douyin-bridge.mjs` + `bridge-ws.mjs`，见 [bridge/README.md](bridge/README.md)） |
 | `launch.py` | 本地 HTTP 服务（钉死 MIME）+ WebView2 窗口 + 数据桥管理接口 |
 | `start.bat` / `start-portrait.bat` | Windows 一键启动 |
 
@@ -158,7 +172,7 @@ python -m http.server 8090
 
 ```powershell
 node --test "arena-*.test.mjs"     # 41 个用例：规则/吞并/衰减/复活/局结算/称号/王者墙/设置/文案/渲染/贴墙
-python test_launch_windows.py      # 20 个用例：启动器/MIME/服务/数据桥接入/诊断
+python test_launch_windows.py      # 24 个用例：启动器/MIME/服务/内置数据桥/窗口尺寸/诊断
 ```
 
 CI 配置在 [.github/workflows/test.yml](.github/workflows/test.yml)（Windows runner，和实际运行环境一致）。
@@ -210,12 +224,13 @@ CI 配置在 [.github/workflows/test.yml](.github/workflows/test.yml)（Windows 
 
 ## 致谢
 
-- **头像打印机**（作者 VESAM9J / 志哥AI，开源免费）：[rhfbgfgfdg999999/3d-printer-live](https://github.com/rhfbgfgfdg999999/3d-printer-live)——真实头像与弹幕数据的采集链路，本项目的"上游"。[B 站教程视频](https://www.bilibili.com/video/BV1WJxx61EUf/)
+- **头像打印机**（作者 VESAM9J / 志哥AI，MIT）：[rhfbgfgfdg999999/3d-printer-live](https://github.com/rhfbgfgfdg999999/3d-printer-live) —— 抖音弹幕采集链路，已按 MIT 许可**原样内置**在 [bridge/](bridge/)（保留原作者版权声明，未修改）。也是本项目的灵感来源。[B 站教程视频](https://www.bilibili.com/video/BV1WJxx61EUf/)
 - 平台规则调研里的官方文档、媒体与开源项目，见 [docs/research/market-notes.md](docs/research/market-notes.md)。
 
 ## License
 
-[MIT](LICENSE) © 2026 AvatarArena contributors
+本仓库代码 [MIT](LICENSE) © 2026 salmjohn。
+`bridge/` 目录来自上游项目，同样为 MIT，版权归原作者 志哥AI，见 [bridge/LICENSE](bridge/LICENSE)。
 
 ---
 
@@ -226,7 +241,7 @@ CI 配置在 [.github/workflows/test.yml](.github/workflows/test.yml)（Windows 
 
 - Zero build step: Python launcher + plain ES modules + Canvas 2D.
 - `start.bat` (landscape) / `start-portrait.bat` (9:16 for OBS) on Windows; or `python -m http.server 8090` then open `index.html?demo=1`.
-- Live data: bring your own bridge (the external open-source [Avatar Printer](https://github.com/rhfbgfgfdg999999/3d-printer-live) project) or run demo mode. Set `ARENA_BRIDGE_DIR` if the bridge lives elsewhere.
+- Live data: a Douyin bridge is **bundled** in `bridge/` (vendored unmodified from the MIT-licensed [Avatar Printer](https://github.com/rhfbgfgfdg999999/3d-printer-live) project, original copyright kept) — just needs Node.js 18+. Open the live room window, scan the QR code, hit “Start capture”. Set `ARENA_BRIDGE_DIR` to use a different bridge.
 - Tuning sliders for speed, eat absorption, decay, chase AI, crowd hype, avatar cap and round length.
 - Tests: `node --test "arena-*.test.mjs"` (41) and `python test_launch_windows.py` (20).
 - Compliance: no fake interaction, no lotteries/random rewards; use the official LIVE mini-game channel for commercial streaming.

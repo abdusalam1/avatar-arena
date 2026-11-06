@@ -3,6 +3,13 @@ __pycache__/
 *.pyc
 *.log
 
+# 内置数据桥的运行时产物（源码在 bridge/，这些是跑起来才生成的）
+bridge/desktop-bridge.log
+bridge/avatar-cache.json
+bridge/.bridge-room
+bridge/.bridge-profile/
+bridge/ws-samples/
+
 # 开发工具产物（可重新生成）
 docs/frames/
 dist/

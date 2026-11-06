@@ -20,8 +20,9 @@
 
 ### 直播接入
 
+- **内置抖音数据桥**：`bridge/` 原样内置上游 MIT 项目（`douyin-bridge.mjs` + `bridge-ws.mjs`，commit `c3a21d4`），保留原作者版权声明 —— 下载本仓库即可接真实弹幕，不需要再装别的项目（只需 Node.js 18+）
+- 查找顺序：`ARENA_BRIDGE_DIR` → 内置 `bridge/` → 同级 `LiveApp/`（兼容老用法）
 - 页面内「直播连接（抖音）」面板：房间号 → 打开直播间窗口 → 开始抓取 / 停止抓取
-- 数据桥复用外部开源采集器（`ARENA_BRIDGE_DIR` 可指定位置），本仓库不含抓取代码
 - 连上后自动发送 `set-room`，桥会跟着切房间
 - **「诊断」**：一键查看桥状态、直播间标签页 URL、采集器进程、日志最后几行
 - 25 秒无弹幕自动提示排查
@@ -37,6 +38,6 @@
 
 ### 工程
 
-- 41 个 JS 单测 + 20 个 Python 测试，GitHub Actions（Windows）自动跑
+- 41 个 JS 单测 + 24 个 Python 测试，GitHub Actions（Windows）自动跑
 - 纯前端 ES 模块 + 一个 Python 启动器：无构建、无 npm 依赖
 - 远端调试端口校验、Edge 配置目录占用检测、空跑采集器识别
