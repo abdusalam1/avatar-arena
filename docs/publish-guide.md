@@ -24,12 +24,14 @@ git push -u origin main
 
 ## 3. 仓库设置（直接影响能不能被搜到）
 
-- **Description**：`直播间互动游戏：观众点赞进场、评论变大、礼物暴涨，大的吞掉小的（Douyin / TikTok LIVE）`
-- **Topics**（最多 20 个，建议）：
-  `douyin` `tiktok-live` `live-stream` `interactive` `canvas` `game` `javascript` `python`
-  `webview2` `avatar` `agar-io` `弹幕互动` `无人直播` `live-game` `obs`
-- **About → Website**：可以放你的 B 站/抖音视频链接
-- 勾选 **Issues**（方便收反馈），**Discussions** 可选
+- **Description**（推荐这版，带"开源"和英文关键词，方便中英搜到）：
+  `开源直播间互动游戏：点赞就进场、评论变大、礼物暴涨，大的吞掉小的。Canvas 2D + OBS 竖屏，可接抖音 / TikTok 直播弹幕`
+- **Topics**（最多 20 个，建议 15 个中英混搭）：
+  `douyin` `tiktok-live` `live-streaming` `live-game` `interactive` `canvas` `javascript` `python`
+  `webview2` `obs` `avatar` `agar-io` `live-stream` `弹幕互动` `open-source`
+- **About → Website**：先留空，等有 B 站/抖音视频了再填（链接图标能显著提高点击）
+- 勾选 **Issues**（收反馈）和 **Releases**（发版用）；**Packages / Deployments 不要勾**（本项目没有这两类产物，勾了首页会多出空模块）
+- **Social preview** 在 Settings 里，不在 About 弹窗里（见下一节）
 
 ## 4. 首屏观感（决定 star 率）
 
