@@ -26,9 +26,10 @@ git push -u origin main
 
 - **Description**（推荐这版，带"开源"和英文关键词，方便中英搜到）：
   `开源直播间互动游戏：点赞就进场、评论变大、礼物暴涨，大的吞掉小的。Canvas 2D + OBS 竖屏，可接抖音 / TikTok 直播弹幕`
-- **Topics**（最多 20 个，建议 15 个中英混搭）：
-  `douyin` `tiktok-live` `live-streaming` `live-game` `interactive` `canvas` `javascript` `python`
-  `webview2` `obs` `avatar` `agar-io` `live-stream` `弹幕互动` `open-source`
+- **Topics**（最多 20 个，建议 15 个）：**只能用 ASCII 小写字母/数字/连字符，不能写中文**（写中文会报
+  `Repository topics must start with a lowercase letter or number`）。中文关键词放在 Description 里。
+  `douyin` `tiktok-live` `live-streaming` `live-game` `live-stream` `interactive` `canvas`
+  `javascript` `python` `webview2` `obs` `avatar` `agar-io` `gamedev` `open-source`
 - **About → Website**：先留空，等有 B 站/抖音视频了再填（链接图标能显著提高点击）
 - 勾选 **Issues**（收反馈）和 **Releases**（发版用）；**Packages / Deployments 不要勾**（本项目没有这两类产物，勾了首页会多出空模块）
 - **Social preview** 在 Settings 里，不在 About 弹窗里（见下一节）
