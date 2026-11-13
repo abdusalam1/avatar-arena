@@ -52,11 +52,12 @@ test('序列化往返一致', () => {
 test('设置能落到引擎和局管理器上', () => {
   const arena = new Arena({ seed: 1 });
   const rounds = new RoundManager({ roundSeconds: 60 });
-  const s = sanitizeArenaSettings({ maxAlive: 42, eatGain: 0.5, decayPerSec: 0.01, smarts: 0.2, roundMinutes: 3, speed: 200, hypeBoost: 1.4 });
+  const s = sanitizeArenaSettings({ maxAlive: 42, eatGain: 0.5, decayPerSec: 0.01, decayTo: 1.8, smarts: 0.2, roundMinutes: 3, speed: 200, hypeBoost: 1.4 });
   applyArenaSettings(s, arena, rounds);
   assert.equal(arena.cfg.maxAlive, 42);
   assert.equal(arena.cfg.eatGain, 0.5);
   assert.equal(arena.cfg.decayPerSec, 0.01);
+  assert.equal(arena.cfg.decayTo, 1.8);
   assert.equal(arena.cfg.smarts, 0.2);
   assert.equal(arena.cfg.speed, 200);
   assert.equal(arena.cfg.hypeBoost, 1.4);
@@ -72,6 +73,14 @@ test('移动速度与互动加速也在合法区间内被夹住', () => {
   assert.equal(tooSlow.hypeBoost, 0);
   assert.equal(sanitizeArenaSettings({}).speed, ARENA_DEFAULTS.speed);
   assert.equal(sanitizeArenaSettings({}).hypeBoost, ARENA_DEFAULTS.hypeBoost);
+});
+
+test('衰减下限也在合法区间内被夹住', () => {
+  assert.equal(sanitizeArenaSettings({ decayTo: 99 }).decayTo, 2.5);
+  assert.equal(sanitizeArenaSettings({ decayTo: 0.2 }).decayTo, 1);
+  assert.equal(sanitizeArenaSettings({}).decayTo, ARENA_DEFAULTS.decayTo);
+  // 默认下限必须是 200（用户要能压到 200，而不是停在 300）
+  assert.equal(ARENA_DEFAULTS.decayTo * 100, 200);
 });
 
 test('文案：变量替换与缺键回落', () => {

@@ -26,8 +26,10 @@ export const DEFAULTS = {
   commentCooldownMs: 1500,
   giftMass: { heart: 25, beer: 45, lollipop: 65, rose: 95, rocket: 220, other: 40 },
   eatGain: 0.62,           // 吃掉后吸收的比例（<1 → 总质量缓慢泄漏）
-  decayPerSec: 0.004,      // 超过基础质量 3 倍后，每秒衰减比例
-  decayFrom: 3,            // 质量达到基础的几倍开始衰减
+  decayPerSec: 0.004,      // 大号每秒按比例衰减
+  decayFrom: 3,            // 质量达到基础的几倍开始衰减（默认 300）
+  decayTo: 2,              // 衰减下限：一路压到基础的几倍（默认 200，可调）
+  decayMinPerSec: 3,       // 衰减的最低速度（保证能走到下限，不会无限拖尾）
   maxMassFactor: 26,       // 质量上限 = 基础质量 × 该倍数
   smarts: 0.65,            // 0=纯随机游走，1=强烈追逃
   speed: 118,              // 基础移动速度（世界单位/秒），可现场调
@@ -197,6 +199,7 @@ export class Arena {
       angle: this.rng() * Math.PI * 2,
       alive: true,
       bornAt: this.time,
+      decaying: false,    // 是否已进入"大号衰减"（进入后会一路压到地板）
       stuckT: 0,          // 贴墙卡住计时（自愈用）
       markX: 0, markY: 0, // 上次检查位置
       diedAt: -99,
@@ -400,11 +403,18 @@ export class Arena {
     this.#ev('eat', { predator: predator.name, prey: prey.name });
   }
 
+  // 衰减：只有"大号"才进入衰减，但一旦进入就会一路压到 decayTo 地板（默认 200），
+  // 而不是掉回起点（300）就停——旧逻辑正是因此永远卡在 300。
   #decay(a, dt) {
     const cfg = this.cfg;
-    if (a.mass > BASE_MASS * cfg.decayFrom) {
-      a.mass = Math.max(BASE_MASS, a.mass * (1 - cfg.decayPerSec * dt));
-    }
+    const startAt = BASE_MASS * Math.max(1.5, cfg.decayFrom ?? 3);
+    const floor = BASE_MASS * Math.max(1, Math.min((cfg.decayTo ?? 2), (cfg.decayFrom ?? 3) - 0.5));
+    if (a.mass > startAt) a.decaying = true;
+    if (!a.decaying) return;
+    if (a.mass <= floor) { a.mass = floor; a.decaying = false; return; }
+    const proportional = a.mass * cfg.decayPerSec * dt;   // 越大掉得越快
+    const linear = (cfg.decayMinPerSec ?? 3) * dt;        // 保证真的能走到地板，不会无限拖尾
+    a.mass = Math.max(floor, a.mass - Math.max(proportional, linear));
   }
 
   #updateKing() {
@@ -417,6 +427,20 @@ export class Arena {
       this.lastKingAt = this.time;
       this.#push('king', `👑 当前王者：${top.name}（体型 ${Math.round(top.mass)}）`, { name: top.name });
     }
+  }
+
+  // 一键清屏：移除地图上所有头像（直播换场/画面太乱时的急救按钮）。
+  // 不清统计和历史记录，只清场上的头像；之后新的互动会重新进场。
+  clear() {
+    const count = this.alive.length;
+    this.avatars.clear();
+    this.eventMarks = [];
+    this.pace = 1;
+    this.king = '';
+    this.lastKingAt = -99;
+    this.#push('clear', `🧹 清屏：移除了 ${count} 个头像`, {});
+    this.#fx('clear', {});
+    return count;
   }
 
   recordKing() {

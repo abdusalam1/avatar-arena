@@ -107,6 +107,7 @@
       <button data-gift="火箭">🚀</button>
       <button id="btnJoin" data-i18n="dock.join">＋ 新观众进场</button>
       <button id="btnDemo" data-i18n="btn.demoOn">演示模式：开</button>
+      <button id="btnClear" data-i18n="dock.clear">🧹 清屏</button>
     </div>
     <div class="hint" data-i18n="panel.hint"></div>
   </section>
@@ -441,6 +442,12 @@ $('btnJoin').addEventListener('click', () => {
   pushEvent({ type: 'join', name });
   render.toast(tr('toast.welcome', { name }), 'join', 3.5);
   if (speech.enabled) speech.welcome(name);
+});
+$('btnClear').addEventListener('click', () => {
+  const count = arena.clear();
+  render.toast(tr('toast.cleared', { n: count }), 'king', 3.5);
+  renderRank(arena.snapshot());
+  renderLog(arena.snapshot());
 });
 $('btnDemo').addEventListener('click', () => {
   settings.demo = !settings.demo;

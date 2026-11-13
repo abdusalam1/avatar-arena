@@ -184,6 +184,41 @@ test('大号会自然衰减，质量有上限', () => {
   assert.ok(big.mass <= maxMassOf(DEFAULTS));
 });
 
+test('衰减会一路压到 200，不会停在 300', () => {
+  // 回归：旧逻辑在 mass 掉回 decayFrom(300) 时就退出衰减，导致大号永远卡在 300
+  const a = fresh();
+  a.feed({ type: 'like', name: '大号' });
+  const big = a.avatars.get('大号');
+  big.mass = 1000;
+  for (let i = 0; i < 60 * 320; i++) a.tick(1 / 60);   // 320 秒
+  assert.ok(big.mass <= 205, `应该压到 200 附近，实际 ${big.mass.toFixed(1)}`);
+  assert.ok(big.mass >= 199.9, `不应该低于下限，实际 ${big.mass.toFixed(1)}`);
+});
+
+test('衰减下限可配置（decayTo），并且不会越过它', () => {
+  const a = fresh({ decayTo: 1.5 });
+  a.feed({ type: 'like', name: '大号' });
+  const big = a.avatars.get('大号');
+  big.mass = 600;
+  for (let i = 0; i < 60 * 400; i++) a.tick(1 / 60);
+  assert.ok(Math.abs(big.mass - 150) < 0.5, `期望 150，实际 ${big.mass.toFixed(1)}`);
+});
+
+test('清屏：一键移除所有头像，之后还能重新进场', () => {
+  const a = fresh();
+  for (const name of ['甲', '乙', '丙']) a.feed({ type: 'like', name });
+  assert.equal(a.snapshot().alive.length, 3);
+  assert.equal(a.clear(), 3);
+  assert.equal(a.snapshot().alive.length, 0);
+  assert.equal(a.snapshot().king, '');
+  assert.equal(a.snapshot().pace, 1);
+  // 清屏不应影响统计/王者墙
+  assert.ok(a.snapshot().log.some((line) => line.kind === 'clear'));
+  // 之后新互动照常进场
+  a.feed({ type: 'like', name: '新人' });
+  assert.equal(a.snapshot().alive.length, 1);
+});
+
 test('人数上限：满了不再进场，但老玩家还能变大', () => {
   const a = fresh({ maxAlive: 5 });
   for (let i = 0; i < 5; i++) a.feed({ type: 'like', name: '玩家' + i });

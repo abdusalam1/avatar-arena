@@ -13,6 +13,7 @@ export const ARENA_DEFAULTS = {
   maxAlive: 60,
   eatGain: 0.62,
   decayPerSec: 0.004,
+  decayTo: 2,
   smarts: 0.65,
   speed: 118,
   hypeBoost: 0.9,
@@ -23,6 +24,7 @@ const RANGES = {
   maxAlive: [10, 120],
   eatGain: [0.2, 1],
   decayPerSec: [0, 0.02],
+  decayTo: [1, 2.5],
   smarts: [0, 1],
   speed: [40, 260],
   hypeBoost: [0, 2],
@@ -59,6 +61,7 @@ export function applyArenaSettings(settings, arena, rounds) {
     arena.cfg.maxAlive = Math.round(settings.maxAlive);
     arena.cfg.eatGain = settings.eatGain;
     arena.cfg.decayPerSec = settings.decayPerSec;
+    arena.cfg.decayTo = settings.decayTo;
     arena.cfg.smarts = settings.smarts;
     arena.cfg.speed = settings.speed;
     arena.cfg.hypeBoost = settings.hypeBoost;
@@ -104,7 +107,7 @@ export function renderArenaSettings(body, settings, save) {
   };
 
   const keyKey = (key) => ({
-    eatGain: 'eatGain', decayPerSec: 'decay', smarts: 'smarts',
+    eatGain: 'eatGain', decayPerSec: 'decay', smarts: 'smarts', decayTo: 'decayTo',
     maxAlive: 'maxAlive', roundMinutes: 'roundMinutes',
     speed: 'speed', hypeBoost: 'hype'
   }[key] || key);
@@ -113,6 +116,7 @@ export function renderArenaSettings(body, settings, save) {
   slider('hypeBoost', 0, 2, 0.1);
   slider('eatGain', 0.2, 1, 0.02);
   slider('decayPerSec', 0, 0.02, 0.001);
+  slider('decayTo', 1, 2.5, 0.1);
   slider('smarts', 0, 1, 0.05);
   slider('maxAlive', 10, 120, 5);
   slider('roundMinutes', 1, 60, 1);

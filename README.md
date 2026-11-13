@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/node-%E2%89%A518-339933.svg" alt="node">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-3776ab.svg" alt="python">
   <img src="https://img.shields.io/badge/platform-Windows-0078d4.svg" alt="windows">
-  <img src="https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-41%20JS%20%2B%2024%20Python-7ee7c7.svg" alt="tests">
+  <img src="https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-45%20JS%20%2B%2024%20Python-7ee7c7.svg" alt="tests">
 </p>
 
 ---
@@ -80,8 +80,9 @@ python -m http.server 8090
 | **吃** | 体型差 ≥15% 就能吞掉对方，吸收对方 62% 的质量 |
 | **同级** | 相碰弹开，不会互相伤害 |
 | **撞墙** | 法向弹开 + 切向滑行，角落会自动散开（不会堆在边角） |
-| **防滚雪球** | 大号每秒衰减 + 质量上限 + 越大越慢 → 王者会被追平 |
+| **防滚雪球** | 大号每秒衰减 + 质量上限 + 越大越慢 → 王者会被追平；衰减会**一路压到 200**（不会停在 300） |
 | **被吃了** | 随便再互动一次就复活（2.5 秒冷却），死亡只是节目效果 |
+| **清屏** | 底部「🧹 清屏」一键移除地图上所有头像（换场、画面太乱时用；之后新互动照常进场） |
 
 ### 现场调参（改完立即生效，自动保存）
 
@@ -91,6 +92,7 @@ python -m http.server 8090
 | 互动加速 | 0.9 | 0 = 关闭；0.9 = 最热闹时全场最多 ×1.9 |
 | 吃掉吸收率 | 0.62 | 越小越防滚雪球 |
 | 大号衰减 | 0.004 | 越大缩得越快，王者换人更快 |
+| 衰减下限 | 2.0 | ×100 = **200**。大号会一路压到这个体型（可调 100–250） |
 | 追逃智能 | 0.65 | 0 = 纯随机漂移；1 = 强烈追逃 |
 | 同时在线上限 | 60 | 地图里最多多少个头像 |
 | 一局时长 | 10 分钟 | 到点结算王者/称号 |
@@ -171,7 +173,7 @@ python -m http.server 8090
 ## 测试
 
 ```powershell
-node --test "arena-*.test.mjs"     # 41 个用例：规则/吞并/衰减/复活/局结算/称号/王者墙/设置/文案/渲染/贴墙
+node --test "arena-*.test.mjs"     # 45 个用例：规则/吞并/衰减/清屏/复活/局结算/称号/王者墙/设置/文案/渲染/贴墙
 python test_launch_windows.py      # 24 个用例：启动器/MIME/服务/内置数据桥/窗口尺寸/诊断
 ```
 
