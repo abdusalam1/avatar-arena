@@ -98,6 +98,7 @@ def bridge_status():
 ACTIVE_PORT = 0
 BRIDGE_PROC = None
 BRIDGE_ROOM = ''
+LIVE_PROC = None       # 我们打开的直播间浏览器窗口（用于退出时关掉）
 LIVE_CDP_PORT = 9223
 
 BROWSER_CANDIDATES = (
@@ -167,7 +168,7 @@ def open_live_room(raw, portrait=False):
         '--disable-features=IntensiveWakeUpThrottling,CalculateNativeWinOcclusion',
     ]
     try:
-        subprocess.Popen(args)
+        LIVE_PROC = subprocess.Popen(args)
     except OSError as exc:
         return dict(ok=False, error=str(exc))
     # 等远程调试端口真的起来：Edge/Chrome 已有实例占用同一配置目录时，
@@ -321,20 +322,90 @@ def start_bridge(raw):
     return dict(ok=False, error='数据桥启动超时：\n' + bridge_log_tail())
 
 
-def stop_bridge():
-    """只停本程序启动的数据桥；打印项目自己启动的不去动它。"""
+def kill_tree(pid, timeout_s=4.0):
+    """结束进程及其子进程（Windows 用 taskkill /T，避免留下孤儿子进程）。"""
+    if not pid:
+        return False
+    try:
+        if os.name == 'nt':
+            subprocess.run(['taskkill', '/PID', str(pid), '/T', '/F'],
+                           capture_output=True, timeout=timeout_s,
+                           creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+        else:
+            os.kill(pid, 15)
+        return True
+    except Exception:
+        return False
+
+
+def find_bridge_pids():
+    """找出正在跑"本仓库内置数据桥"的 node 进程（残留采集器）。
+
+    只按本目录下的 bridge/douyin-bridge.mjs 精确匹配：
+    不会误伤 LiveApp/头像打印机自己启动的那个采集器。
+    """
+    if os.name != 'nt':
+        return []
+    script = Path(__file__).resolve().parent / 'bridge' / 'douyin-bridge.mjs'
+    if not script.exists():
+        return []
+    script_path = str(script).replace("'", "''")
+    command = (
+        "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | "
+        "Where-Object { $_.CommandLine -like '*douyin-bridge.mjs*' -and "
+        "$_.CommandLine -like '*" + script_path + "*' } | "
+        "Select-Object -ExpandProperty ProcessId"
+    )
+    try:
+        result = subprocess.run(['powershell', '-NoProfile', '-NonInteractive', '-Command', command],
+                                capture_output=True, text=True, timeout=10,
+                                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+        return [int(line) for line in (result.stdout or '').split() if line.strip().isdigit()]
+    except Exception:
+        return []
+
+
+def stop_bridge(force=False):
+    """停数据桥。
+
+    - 默认只停本程序启动的那个；
+    - force=True 时额外清理"残留采集器"（上次异常退出留下的、还在拽着浏览器窗口的 node 进程），
+      只匹配本目录 bridge/douyin-bridge.mjs，不会误杀打印项目的桥。
+    """
     global BRIDGE_PROC, BRIDGE_ROOM, _BRIDGE_CACHE
     proc = BRIDGE_PROC
+    killed = []
     if proc and proc.poll() is None:
-        proc.terminate()
+        kill_tree(proc.pid) or proc.terminate()
         try:
             proc.wait(timeout=5)
         except Exception:
             proc.kill()
+        killed.append(proc.pid)
     BRIDGE_PROC = None
     BRIDGE_ROOM = ''
     _BRIDGE_CACHE = None
-    return dict(ok=True)
+    if force:
+        for pid in find_bridge_pids():
+            if pid not in killed and kill_tree(pid):
+                killed.append(pid)
+        _BRIDGE_CACHE = None
+    return dict(ok=True, killed=killed)
+
+
+def close_live_window():
+    """关掉本程序打开的直播间浏览器窗口（自己开的才关，复用别人窗口的不动）。"""
+    global LIVE_PROC
+    proc = LIVE_PROC
+    LIVE_PROC = None
+    if not proc or proc.poll() is not None:
+        return dict(ok=True, killed=[])
+    kill_tree(proc.pid)
+    try:
+        proc.wait(timeout=5)
+    except Exception:
+        proc.kill()
+    return dict(ok=True, killed=[proc.pid])
 
 
 def work_area():
@@ -415,7 +486,13 @@ class ArenaHandler(SimpleHTTPRequestHandler):
         if self.path.startswith('/__stop-bridge'):
             if not self._guard():
                 return self._json(403, '{"ok":false,"error":"forbidden"}')
-            return self._json(200, json.dumps(stop_bridge(), ensure_ascii=False))
+            query = parse_qs(urlparse(self.path).query)
+            force = (query.get('force') or ['1'])[0] != '0'
+            return self._json(200, json.dumps(stop_bridge(force=force), ensure_ascii=False))
+        if self.path.startswith('/__close-live'):
+            if not self._guard():
+                return self._json(403, '{"ok":false,"error":"forbidden"}')
+            return self._json(200, json.dumps(close_live_window(), ensure_ascii=False))
         # 丢掉旧版本缓存带来的条件请求，保证 Ctrl+R 一定拿新文件
         for header in ('If-Modified-Since', 'If-None-Match'):
             if header in self.headers:
@@ -484,6 +561,16 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        # 退出时把"我们拉起来的东西"一起收掉：采集器（node）和直播间浏览器窗口。
+        # 不收的话，采集器会变成孤儿进程，关掉直播间窗口它几秒后又自己开回来。
+        try:
+            stop_bridge(force=True)
+        except Exception:
+            pass
+        try:
+            close_live_window()
+        except Exception:
+            pass
         if server:
             server.shutdown()
             server.server_close()

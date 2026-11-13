@@ -230,6 +230,28 @@ class LiveConnectionTests(unittest.TestCase):
         launch.BRIDGE_PROC = None
         self.assertTrue(launch.stop_bridge()['ok'])
 
+    def test_main_exit_stops_bridge_and_closes_live_window(self):
+        """回归：退出程序时必须收掉采集器和直播间窗口，
+        否则采集器变孤儿进程，会一直把直播间窗口重新开出来。"""
+        calls = []
+        saved = (launch.stop_bridge, launch.close_live_window, launch.ROOT)
+        launch.stop_bridge = lambda force=False: calls.append(('stop_bridge', force)) or {'ok': True}
+        launch.close_live_window = lambda: calls.append(('close_live_window',)) or {'ok': True}
+        try:
+            fake = FakeWebview()
+            sys.modules['webview'] = fake
+            argv_backup = sys.argv
+            sys.argv = ['launch.py']
+            try:
+                launch.main()
+            finally:
+                sys.argv = argv_backup
+                sys.modules.pop('webview', None)
+        finally:
+            launch.stop_bridge, launch.close_live_window, launch.ROOT = saved
+        self.assertIn(('stop_bridge', True), calls)
+        self.assertIn(('close_live_window',), calls)
+
     def test_diag_reports_bridge_window_and_log(self):
         launch.bridge_status = lambda: {'ok': True, 'url': 'ws://127.0.0.1:8765', 'room': '123456'}
         launch.listening = lambda port, timeout=0.3: True
@@ -306,6 +328,50 @@ class LiveConnectionTests(unittest.TestCase):
             self.assertNotIn('PRINTER_CDP_PORT', captured['env'])
             self.assertTrue(any('douyin-bridge.mjs' in part for part in captured['cmd']))
             self.assertIn('123456', captured['cmd'])
+
+
+class ProcessCleanupTests(unittest.TestCase):
+    """退出/停止时把采集器和直播间窗口一起收掉（孤儿 bridge 会把窗口反复开回来）。"""
+
+    def setUp(self):
+        self._orig = (launch.find_bridge_pids, launch.kill_tree, launch.LIVE_PROC, launch.BRIDGE_PROC)
+        self.killed = []
+        launch.kill_tree = lambda pid, timeout_s=4.0: self.killed.append(pid) or True
+        launch.LIVE_PROC = None
+        launch.BRIDGE_PROC = None
+
+    def tearDown(self):
+        (launch.find_bridge_pids, launch.kill_tree, launch.LIVE_PROC, launch.BRIDGE_PROC) = self._orig
+
+    def test_stop_bridge_force_cleans_leftover_processes(self):
+        launch.find_bridge_pids = lambda: [4242]
+        result = launch.stop_bridge(force=True)
+        self.assertIn(4242, result['killed'])
+        self.assertIn(4242, self.killed)
+
+    def test_stop_bridge_without_force_leaves_leftovers_alone(self):
+        launch.find_bridge_pids = lambda: [4242]
+        result = launch.stop_bridge()
+        self.assertEqual(result['killed'], [])
+        self.assertEqual(self.killed, [])
+
+    def test_close_live_window_is_noop_when_not_opened(self):
+        result = launch.close_live_window()
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['killed'], [])
+
+    def test_close_live_window_kills_tracked_browser(self):
+        class FakeProc:
+            pid = 999
+            def poll(self):
+                return None
+            def wait(self, timeout=None):
+                return 0
+
+        launch.LIVE_PROC = FakeProc()
+        result = launch.close_live_window()
+        self.assertEqual(result['killed'], [999])
+        self.assertIsNone(launch.LIVE_PROC)
 
 
 if __name__ == '__main__':

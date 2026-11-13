@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/node-%E2%89%A518-339933.svg" alt="node">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-3776ab.svg" alt="python">
   <img src="https://img.shields.io/badge/platform-Windows-0078d4.svg" alt="windows">
-  <img src="https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-45%20JS%20%2B%2024%20Python-7ee7c7.svg" alt="tests">
+  <img src="https://img.shields.io/badge/%E6%B5%8B%E8%AF%95-45%20JS%20%2B%2029%20Python-7ee7c7.svg" alt="tests">
 </p>
 
 ---
@@ -174,7 +174,7 @@ python -m http.server 8090
 
 ```powershell
 node --test "arena-*.test.mjs"     # 45 个用例：规则/吞并/衰减/清屏/复活/局结算/称号/王者墙/设置/文案/渲染/贴墙
-python test_launch_windows.py      # 24 个用例：启动器/MIME/服务/内置数据桥/窗口尺寸/诊断
+python test_launch_windows.py      # 29 个用例：启动器/MIME/服务/内置数据桥/窗口尺寸/进程清理/诊断
 ```
 
 CI 配置在 [.github/workflows/test.yml](.github/workflows/test.yml)（Windows runner，和实际运行环境一致）。
@@ -189,6 +189,9 @@ CI 配置在 [.github/workflows/test.yml](.github/workflows/test.yml)（Windows 
 - 反复显示「独立直播窗口未就绪」→ 有个旧的采集器在 8765 空跑，先在打印项目里停止抓取或结束那个 node 进程；
 - 标签页 URL 不是 `live.douyin.com/房间号` → 直播间没登录/没进直播间；
 - 房间号不是正在直播的那个 → 未开播/回放没有弹幕协议帧。
+
+**Q：关掉程序后，直播间窗口关了又自己弹出来？**
+旧版本退出时没结束采集器（node）进程，它变成孤儿后找不到直播间标签页，就会自动重开窗口。现在：**关程序会自动结束采集器并关闭直播间窗口**；如果你手上是旧版本或程序被强杀，点一次「停止抓取」（会顺手清理残留采集器）或点「关闭直播间窗口」即可。
 
 **Q：能换成我的头像/背景/美术风格吗？**
 可以，渲染全在 `arena-render.mjs`：球面、描边、地形网格、配色都在这一层，改完刷新即可。

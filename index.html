@@ -120,6 +120,7 @@
         <button id="btnOpenLive" data-i18n="bridge.open">打开直播间窗口</button>
         <button id="btnStartBridge" class="primary" data-i18n="bridge.start">开始抓取</button>
         <button id="btnStopBridge" data-i18n="bridge.stop">停止抓取</button>
+      <button id="btnCloseLive" data-i18n="bridge.closeLive">关闭直播间窗口</button>
         <button id="btnDiag" data-i18n="bridge.diag">诊断</button>
       </div>
       <div class="live-hint" id="liveHint"></div>
@@ -572,8 +573,15 @@ $('btnStartBridge').addEventListener('click', async () => {
 });
 
 $('btnStopBridge').addEventListener('click', async () => {
-  const result = await api('/__stop-bridge');
-  liveHint(result.ok ? tr('bridge.stopOk') : tr('bridge.error', { msg: result.error || '' }), result.ok ? '' : 'warn');
+  // force=1：连"上次异常退出留下的残留采集器"一起清掉，否则它会一直把直播间窗口开回来
+  const result = await api('/__stop-bridge?force=1');
+  const killed = Array.isArray(result.killed) ? result.killed.length : 0;
+  liveHint(result.ok ? tr('bridge.stopOk', { n: killed }) : tr('bridge.error', { msg: result.error || '' }), result.ok ? '' : 'warn');
+});
+
+$('btnCloseLive').addEventListener('click', async () => {
+  const result = await api('/__close-live');
+  liveHint(result.ok ? tr('bridge.closeOk') : tr('bridge.error', { msg: result.error || '' }), result.ok ? '' : 'warn');
 });
 
 $('btnDiag').addEventListener('click', async () => {
